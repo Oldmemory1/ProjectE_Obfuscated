@@ -78,6 +78,10 @@ tasks:
       - task: obfuscate
       - |
         set -e
+        if [ ! -d Original_Src ]; then
+          echo "ERROR: Original_Src/ not found. Run 'task setup' first."
+          exit 1
+        fi
         echo "Deploying .obfuscated/ -> src/ ..."
         rm -rf src
         cp -a .obfuscated src
