@@ -30,8 +30,8 @@ eclipse/
 libs/
 
 # Obfuscation
+Original_Src/
 .obfuscated/
-src.bak/
 venv/
 
 # Windows

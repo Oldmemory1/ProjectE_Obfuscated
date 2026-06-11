@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Generate obfuscated source tree from original src/ — never modifies the original.
+"""Generate obfuscated source tree from Original_Src/ — never modifies the original.
 
-Produces .obfuscated/ which is a copy of src/ with all identifying strings
-replaced by random values. The build workflow swaps this into place temporarily.
+Reads the pristine source from Original_Src/ (created once by `task setup`) and
+produces .obfuscated/ with all identifying strings replaced by random values.
 """
 
 import os
@@ -12,7 +12,8 @@ import string
 import sys
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-SRC_DIR = os.path.join(BASE_DIR, "src")
+ORIG_SRC = os.path.join(BASE_DIR, "Original_Src")
+BUILD_GRADLE = os.path.join(BASE_DIR, "build.gradle")
 OBF_DIR = os.path.join(BASE_DIR, ".obfuscated")
 SEED_FILE = os.path.join(OBF_DIR, ".obf_seed")
 
@@ -20,18 +21,19 @@ OLD_MODID = "projecte"
 OLD_MODNAME = "ProjectE"
 OLD_PKG = "moze_intel.projecte"
 OLD_PKG_PATH = "moze_intel/projecte"
-OLD_MAVEN = "moze_intel"  # part of the Maven group in build.gradle
+OLD_MAVEN = "moze_intel"
 
-# ── name generation ──────────────────────────────────────────────
+
 def random_lower(n=10):
     return ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(n))
+
 
 def random_capital(n=10):
     s = random_lower(n)
     return s[0].upper() + s[1:]
 
+
 def load_or_generate():
-    """Load previous random names from seed file, or generate new ones."""
     if os.path.exists(SEED_FILE):
         with open(SEED_FILE, 'r') as f:
             data = {}
@@ -58,11 +60,11 @@ def load_or_generate():
         f.write(f"MAVEN={maven}\n")
     return modid, modname, pkg, pkg_path, maven
 
+
 NEW_MODID, NEW_MODNAME, NEW_PKG, NEW_PKG_PATH, NEW_MAVEN = load_or_generate()
 
-# ── helpers ──────────────────────────────────────────────────────
+
 def replace_in_file(filepath, old, new):
-    """Replace all occurrences. Returns count."""
     try:
         with open(filepath, 'r', encoding='utf-8') as f:
             content = f.read()
@@ -76,6 +78,7 @@ def replace_in_file(filepath, old, new):
             f.write(content)
     return count
 
+
 def collect_files(root, exts):
     result = []
     for dirpath, dirnames, filenames in os.walk(root):
@@ -84,7 +87,13 @@ def collect_files(root, exts):
                 result.append(os.path.join(dirpath, fn))
     return result
 
-# ── 1. Prepare clean .obfuscated/ copy ───────────────────────────
+
+# ── Guard: Original_Src must exist ──────────────────────────────
+if not os.path.exists(ORIG_SRC):
+    print(f"ERROR: Original_Src/ not found. Run 'task setup' first.")
+    sys.exit(1)
+
+# ── 1. Prepare clean .obfuscated/ ───────────────────────────────
 print("=" * 60)
 print(f"MODID   : {OLD_MODID} -> {NEW_MODID}")
 print(f"MODNAME : {OLD_MODNAME} -> {NEW_MODNAME}")
@@ -93,7 +102,6 @@ print(f"Maven   : {OLD_MAVEN} -> {NEW_MAVEN}")
 print("=" * 60)
 
 if os.path.exists(OBF_DIR):
-    # Remove old obfuscated tree but keep seed file
     for item in os.listdir(OBF_DIR):
         item_path = os.path.join(OBF_DIR, item)
         if item == ".obf_seed":
@@ -103,11 +111,11 @@ if os.path.exists(OBF_DIR):
         else:
             os.remove(item_path)
 
-print(f"\n[1] Copying src/ -> .obfuscated/ ...")
-shutil.copytree(SRC_DIR, OBF_DIR, dirs_exist_ok=True)
+print(f"\n[1] Copying Original_Src/ -> .obfuscated/ ...")
+shutil.copytree(ORIG_SRC, OBF_DIR, dirs_exist_ok=True)
 print("    Done.")
 
-# ── 2. Java source files ─────────────────────────────────────────
+# ── 2. Java source files ────────────────────────────────────────
 MAIN_JAVA = os.path.join(OBF_DIR, "main", "java")
 API_JAVA = os.path.join(OBF_DIR, "api", "java")
 TEST_JAVA = os.path.join(OBF_DIR, "test", "java")
@@ -123,25 +131,22 @@ java_count = 0
 for jf in all_java:
     java_count += replace_in_file(jf, OLD_PKG, NEW_PKG)
     java_count += replace_in_file(jf, OLD_PKG_PATH, NEW_PKG_PATH)
-    # Hardcoded MODID strings (not using constant)
     java_count += replace_in_file(jf, f'"{OLD_MODID}"', f'"{NEW_MODID}"')
-    # Hardcoded MODNAME strings
     java_count += replace_in_file(jf, f'"{OLD_MODNAME}"', f'"{NEW_MODNAME}"')
 print(f"    Replacements: {java_count}")
 
-# ── 3. Move source dirs to new package ───────────────────────────
+# ── 3. Move source dirs to new package ──────────────────────────
 for src_base in [MAIN_JAVA, API_JAVA, TEST_JAVA]:
     old_dir = os.path.join(src_base, OLD_PKG_PATH)
     new_dir = os.path.join(src_base, NEW_PKG_PATH)
     if os.path.exists(old_dir):
         os.makedirs(os.path.dirname(new_dir), exist_ok=True)
         shutil.move(old_dir, new_dir)
-        # Clean empty parent
         old_parent = os.path.dirname(old_dir)
         if old_parent != src_base and os.path.exists(old_parent) and not os.listdir(old_parent):
             shutil.rmtree(old_parent)
 
-# ── 4. Resource files ────────────────────────────────────────────
+# ── 4. Resource files ───────────────────────────────────────────
 all_resources = collect_files(RESOURCES, ['.json', '.lang', '.cfg', '.info', '.txt', '.mcmeta'])
 print(f"\n[3] Processing {len(all_resources)} resource files...")
 res_count = 0
@@ -156,15 +161,14 @@ for rf in all_resources:
     res_count += replace_in_file(rf, OLD_PKG_PATH, NEW_PKG_PATH)
 print(f"    Replacements: {res_count}")
 
-# ── 5. Rename assets directory ───────────────────────────────────
+# ── 5. Rename assets directory ──────────────────────────────────
 old_assets = os.path.join(RESOURCES, "assets", OLD_MODID)
 new_assets = os.path.join(RESOURCES, "assets", NEW_MODID)
 if os.path.exists(old_assets):
     shutil.move(old_assets, new_assets)
     print(f"\n[4] Assets renamed: {OLD_MODID} -> {NEW_MODID}")
 
-# ── 6. Patch build.gradle ────────────────────────────────────────
-BUILD_GRADLE = os.path.join(BASE_DIR, "build.gradle")
+# ── 6. Patch build.gradle ───────────────────────────────────────
 OBF_BUILD_GRADLE = os.path.join(OBF_DIR, "build.gradle")
 print(f"\n[5] Patching build.gradle...")
 with open(BUILD_GRADLE, 'r', encoding='utf-8') as f:
@@ -179,9 +183,9 @@ with open(OBF_BUILD_GRADLE, 'w', encoding='utf-8') as f:
     f.write(bg)
 print(f"    Replacements: {bg_count}")
 
-# ── Summary ──────────────────────────────────────────────────────
+# ── Summary ─────────────────────────────────────────────────────
 print("\n" + "=" * 60)
-print(".obfuscated/ ready — original src/ untouched")
+print(".obfuscated/ ready — Original_Src/ untouched")
 print("=" * 60)
 print(f"MODID   : {NEW_MODID}")
 print(f"MODNAME : {NEW_MODNAME}")
