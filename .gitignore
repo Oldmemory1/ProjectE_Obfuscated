@@ -29,6 +29,11 @@ local.properties
 eclipse/
 libs/
 
+# Obfuscation
+.obfuscated/
+src.bak/
+venv/
+
 # Windows
 Thumbs.db
 ehthumbs.db
