@@ -55,14 +55,12 @@ tasks:
     desc: Build from obfuscated source (deploy .obfuscated/ → src/, build, restore)
     env:
       JAVA_HOME: "{{.JAVA17_HOME}}"
+    preconditions:
+      - test -d Original_Src
     cmds:
       - task: obfuscate
       - |
         set -e
-        if [ ! -d Original_Src ]; then
-          echo "ERROR: Original_Src/ not found. Run 'task setup' first."
-          exit 1
-        fi
         echo "Deploying .obfuscated/ -> src/ ..."
         rm -rf src
         cp -a .obfuscated src
