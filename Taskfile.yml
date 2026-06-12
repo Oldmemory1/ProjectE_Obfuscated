@@ -1,0 +1,40 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+
+version: '3'
+
+vars:
+  JAVA17_HOME: /usr/lib/jvm/java-17-openjdk-amd64
+
+tasks:
+  default:
+    desc: Build the mod jar
+    cmds:
+      - task: build
+
+  build:
+    desc: Build the mod jar
+    env:
+      JAVA_HOME: "{{.JAVA17_HOME}}"
+    cmds:
+      - ./gradlew build
+
+  clean:
+    desc: Clean build artifacts
+    env:
+      JAVA_HOME: "{{.JAVA17_HOME}}"
+    cmds:
+      - ./gradlew clean
+
+  jar:
+    desc: Build only the jar (no tests)
+    env:
+      JAVA_HOME: "{{.JAVA17_HOME}}"
+    cmds:
+      - ./gradlew jar
+
+  test:
+    desc: Run tests
+    env:
+      JAVA_HOME: "{{.JAVA17_HOME}}"
+    cmds:
+      - ./gradlew test

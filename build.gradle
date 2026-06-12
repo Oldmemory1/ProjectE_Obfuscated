@@ -232,7 +232,7 @@ repositories {
     }
     maven {
         name 'TOP'
-        url "https://maven.tterrag.com/"
+        url uri("${projectDir}/libs")
         content {
             includeGroup 'mcjty.theoneprobe'
         }

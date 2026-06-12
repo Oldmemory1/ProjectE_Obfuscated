@@ -27,7 +27,6 @@ local.properties
 .settings/
 *.launch
 eclipse/
-libs/
 
 # Windows
 Thumbs.db
@@ -37,3 +36,8 @@ $RECYCLE.BIN/
 
 # Mac crap
 .DS_Store
+
+# Obfuscation artifacts (from mc1.12.x)
+.obfuscated/
+Original_Src/
+venv/
