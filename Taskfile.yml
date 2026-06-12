@@ -11,13 +11,68 @@ tasks:
     cmds:
       - task: build
 
+  # ── one-time setup ───────────────────────────────────────────
+  setup:
+    desc: Create Original_Src/ from current src/ (one-time, preserves pristine source)
+    cmds:
+      - |
+        if [ -d Original_Src ]; then
+          echo "Original_Src/ already exists, skipping."
+        else
+          echo "Creating Original_Src/ from src/ ..."
+          cp -a src Original_Src
+          cp build.gradle Original_Src/build.gradle
+          echo "Done. Original_Src/ will never be modified."
+        fi
+
+  # ── normal build (no obfuscation) ────────────────────────────
   build:
-    desc: Build the mod jar
+    desc: Restore src/ from Original_Src/ and build normally
     env:
       JAVA_HOME: "{{.JAVA17_HOME}}"
     cmds:
-      - ./gradlew build
+      - |
+        if [ -d Original_Src ]; then
+          rm -rf src
+          cp -a Original_Src src
+          cp Original_Src/build.gradle build.gradle
+          rm -f src/build.gradle
+        fi
+        ./gradlew build
 
+  # ── obfuscation ──────────────────────────────────────────────
+  obfuscate:
+    desc: Generate .obfuscated/ from Original_Src/ (does not touch src/)
+    cmds:
+      - python3 obfuscate.py
+
+  clean-obf:
+    desc: Remove .obfuscated/ cache (next build produces new random names)
+    cmds:
+      - rm -rf .obfuscated/
+
+  build-obf:
+    desc: Build from obfuscated source (deploy .obfuscated/ → src/, build, restore)
+    env:
+      JAVA_HOME: "{{.JAVA17_HOME}}"
+    cmds:
+      - task: obfuscate
+      - |
+        set -e
+        if [ ! -d Original_Src ]; then
+          echo "ERROR: Original_Src/ not found. Run 'task setup' first."
+          exit 1
+        fi
+        echo "Deploying .obfuscated/ -> src/ ..."
+        rm -rf src
+        cp -a .obfuscated src
+        cp src/build.gradle build.gradle
+        rm src/build.gradle
+        trap 'echo "Restoring src/ from Original_Src/ ..."; rm -rf src; cp -a Original_Src src; cp Original_Src/build.gradle build.gradle; rm -f src/build.gradle' EXIT
+        echo "Building obfuscated mod..."
+        ./gradlew build
+
+  # ── clean / jar / test ───────────────────────────────────────
   clean:
     desc: Clean build artifacts
     env:
