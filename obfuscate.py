@@ -23,13 +23,17 @@ OLD_PKG_PATH = "moze_intel/projecte"
 OLD_MAVEN = "moze_intel"
 
 
-def random_lower(n=10):
-    return ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(n))
+def random_modid(n=10):
+    # MODID must match ^[a-z][a-z0-9_-]{1,63}$ — must start with lowercase letter
+    first = random.choice(string.ascii_lowercase)
+    rest = ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(n - 1))
+    return first + rest
 
 
 def random_capital(n=10):
-    s = random_lower(n)
-    return s[0].upper() + s[1:]
+    first = random.choice(string.ascii_uppercase)
+    rest = ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(n - 1))
+    return first + rest
 
 
 def load_or_generate():
@@ -42,10 +46,10 @@ def load_or_generate():
             return data['MODID'], data['MODNAME'], data['PKG'], data['PKG_PATH'], data['MAVEN']
 
     random.seed(os.urandom(16))
-    modid = random_lower(random.randint(8, 12))
+    modid = random_modid(random.randint(8, 12))
     modname = random_capital(random.randint(8, 12))
-    p1 = random.choice(string.ascii_lowercase) + random_lower(random.randint(5, 8))
-    p2 = random.choice(string.ascii_lowercase) + random_lower(random.randint(5, 8))
+    p1 = random_modid(random.randint(5, 8))
+    p2 = random_modid(random.randint(5, 8))
     pkg = f"{p1}.{p2}"
     pkg_path = pkg.replace('.', '/')
     maven = p1
