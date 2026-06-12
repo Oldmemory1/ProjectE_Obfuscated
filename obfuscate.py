@@ -165,7 +165,7 @@ for rf in all_resources:
     res_count += replace_in_file(rf, f'"{OLD_MODID}"', f'"{NEW_MODID}"')
     res_count += replace_in_file(rf, f'assets/{OLD_MODID}/', f'assets/{NEW_MODID}/')
     res_count += replace_in_file(rf, f'/{OLD_MODID} ', f'/{NEW_MODID} ')
-    res_count += replace_in_file(rf, f'itemGroup.{OLD_MODID}', f'itemGroup.{NEW_MODID}')
+    res_count += replace_in_file(rf, f'.{OLD_MODID}', f'.{NEW_MODID}')
     res_count += replace_in_file(rf, f'"{OLD_MODNAME}"', f'"{NEW_MODNAME}"')
     res_count += replace_in_file(rf, f'modId="{OLD_MODID}"', f'modId="{NEW_MODID}"')
     res_count += replace_in_file(rf, f'[[dependencies.{OLD_MODID}]]', f'[[dependencies.{NEW_MODID}]]')
